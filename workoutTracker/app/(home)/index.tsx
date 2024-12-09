@@ -11,7 +11,7 @@ import {
 } from "react-native";
 
 export default function HomeScreen() {
-   const router = useRouter();
+  const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const handleLogin = async () => {
@@ -24,10 +24,13 @@ export default function HomeScreen() {
         };
       }
 
-      const response = await axios.post<LoginResponse>("http://localhost:3000/auth/signin", {
-        email,
-        password,
-      });
+      const response = await axios.post<LoginResponse>(
+        "http://localhost:3000/auth/signin",
+        {
+          email,
+          password,
+        }
+      );
 
       // Assuming the API returns a message or token on successful login
       if (response.status === 200) {
