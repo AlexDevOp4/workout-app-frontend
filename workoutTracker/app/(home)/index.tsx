@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { Link, useRouter } from "expo-router";
 import {
   View,
   Text,
@@ -9,12 +10,21 @@ import {
   Alert,
 } from "react-native";
 
-const LoginForm: React.FC = () => {
+export default function HomeScreen() {
+   const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const handleLogin = async () => {
     try {
-      const response = await axios.post("http://localhost:3000/auth/signin", {
+      interface LoginResponse {
+        user: {
+          user: {
+            email: string;
+          };
+        };
+      }
+
+      const response = await axios.post<LoginResponse>("http://localhost:3000/auth/signin", {
         email,
         password,
       });
@@ -25,21 +35,14 @@ const LoginForm: React.FC = () => {
           "Success",
           "Login successful! " + response.data.user.user.email
         );
-        console.log("Response Data:", response.data.user.user.email);
+        console.log("Response Data:", response.data.user.user);
+        router.push("/(tabs)");
       }
     } catch (error) {
       console.error("Error logging in:", error);
       Alert.alert("Error", "Invalid email or password.");
     }
   };
-  // const handleLogin = () => {
-  //   if (!email || !password) {
-  //     Alert.alert("Error", "Please fill in all fields.");
-  //     return;
-  //   }
-  //   Alert.alert("Success", `Welcome, ${email}!`);
-  // };
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
@@ -67,11 +70,11 @@ const LoginForm: React.FC = () => {
         <Text style={styles.buttonText}>Log In</Text>
       </TouchableOpacity>
       <Text style={{ marginTop: 20 }}>
-        <a href="/SignUpScreen">Don't have an account? Sign up</a>
+        <Link href="/signup">Don't have an account? Sign up</Link>
       </Text>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -96,7 +99,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   button: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#3b5998",
     padding: 15,
     borderRadius: 8,
     width: "100%",
@@ -108,5 +111,3 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
-
-export default LoginForm;

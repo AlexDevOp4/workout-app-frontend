@@ -1,48 +1,35 @@
+import { Link } from "expo-router";
 import React, { useState } from "react";
-import axios from "axios";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from "react-native";
 
-const LoginForm: React.FC = () => {
+export default function SignUpScreen() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const handleLogin = async () => {
-    try {
-      const response = await axios.post("http://localhost:3000/auth/signin", {
-        email,
-        password,
-      });
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
 
-      // Assuming the API returns a message or token on successful login
-      if (response.status === 200) {
-        Alert.alert(
-          "Success",
-          "Login successful! " + response.data.user.user.email
-        );
-        console.log("Response Data:", response.data.user.user.email);
-      }
-    } catch (error) {
-      console.error("Error logging in:", error);
-      Alert.alert("Error", "Invalid email or password.");
+  const handleSignUp = () => {
+    if (!email || !password || !confirmPassword) {
+      alert("Please fill in all fields.");
+      return;
     }
+
+    if (password !== confirmPassword) {
+      alert("Passwords do not match.");
+      return;
+    }
+
+    alert(`Welcome, ${email}!`);
   };
-  // const handleLogin = () => {
-  //   if (!email || !password) {
-  //     Alert.alert("Error", "Please fill in all fields.");
-  //     return;
-  //   }
-  //   Alert.alert("Success", `Welcome, ${email}!`);
-  // };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>Sign Up</Text>
 
       <TextInput
         style={styles.input}
@@ -63,15 +50,24 @@ const LoginForm: React.FC = () => {
         secureTextEntry
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Log In</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password"
+        placeholderTextColor="#aaa"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry
+      />
+
+      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+        <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
       <Text style={{ marginTop: 20 }}>
-        <a href="/SignUpScreen">Don't have an account? Sign up</a>
+        <Link href="/(home)">Have an account? Log in</Link>
       </Text>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -80,6 +76,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
     backgroundColor: "#f5f5f5",
+    paddingBottom: 80,
   },
   title: {
     fontSize: 24,
@@ -92,21 +89,18 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
-    backgroundColor: "#fff",
+    borderRadius: 5,
   },
   button: {
-    backgroundColor: "#4CAF50",
-    padding: 15,
-    borderRadius: 8,
     width: "100%",
+    padding: 15,
+    backgroundColor: "#3b5998",
     alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 5,
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
     fontWeight: "bold",
   },
 });
-
-export default LoginForm;
