@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios, { get } from "axios";
 import {
   View,
   Text,
@@ -7,10 +8,41 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 export default function ClientDashboardScreen() {
+  const { firebaseUID } = useLocalSearchParams();
+  const [user, setUser] = useState<any>([]);
+
+  useEffect(() => {
+    // Side effect logic here, such as fetching data
+    getUser();
+
+    // Optional cleanup function
+    return () => {
+      console.log("Cleanup logic, if needed.");
+    };
+  }, []); // Dependency array
+
+  const getUser = async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:3000/users/firebase?firebaseUID=${firebaseUID}`
+      );
+
+      setUser(response.data);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      Alert.alert("Error", "Error fetching user.");
+    }
+  };
+
+  // getUser();
+
+  console.log(user);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Client Dashboard</Text>
+      <Text style={styles.title}>Client Dashboard {user.first_name}</Text>
     </View>
   );
 }

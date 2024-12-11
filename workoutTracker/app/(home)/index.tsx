@@ -32,14 +32,13 @@ export default function HomeScreen() {
         }
       );
 
+      const firebaseUID = response.data["uid"];
+
       // Assuming the API returns a message or token on successful login
       if (response.status === 200) {
-        Alert.alert(
-          "Success",
-          "Login successful! " + response.data.user.user.email
-        );
-        console.log("Response Data:", response.data.user.user);
-        router.push("/(tabs)");
+        Alert.alert("Success", "Login successful! " + response.data);
+        console.log("Response Data:", response.data["uid"]);
+        router.push({ pathname: "/(tabs)", params: { firebaseUID } });
       }
     } catch (error) {
       console.error("Error logging in:", error);
