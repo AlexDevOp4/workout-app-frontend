@@ -9,46 +9,68 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+import { useUserContext } from "../UserContext";
+
+// Type definitions for API responses
+interface LoginResponse {
+  uid: string; // Assuming the response contains `uid` directly
+}
+
+interface UserResponse {
+  user_id: number; // Assuming the `user_id` is returned from the second API
+}
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { setUser } = useUserContext();
+
+  // State variables for user input
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+
+  // Handle user login
   const handleLogin = async () => {
     try {
-      interface LoginResponse {
-        user: {
-          user: {
-            email: string;
-          };
-        };
-      }
-
+      // Step 1: Authenticate user and get Firebase UID
       const response = await axios.post<LoginResponse>(
         "http://localhost:3000/auth/signin",
-        {
-          email,
-          password,
-        }
+        { email, password }
       );
 
       const firebaseUID = response.data["uid"];
+      console.log("Firebase UID:", firebaseUID);
 
-      // Assuming the API returns a message or token on successful login
-      if (response.status === 200) {
-        Alert.alert("Success", "Login successful! " + response.data);
-        console.log("Response Data:", response.data["uid"]);
-        router.push({ pathname: "/(tabs)", params: { firebaseUID } });
+      // Step 2: Fetch user data using Firebase UID
+      const userResponse = await axios.get<UserResponse>(
+        `http://localhost:3000/users/firebase?firebaseUID=${firebaseUID}`
+      );
+
+      console.log("User Data:", userResponse.data);
+
+      // Step 3: Handle successful login
+      if (response.status === 201 && userResponse.status === 201) {
+        const userId = userResponse.data.user_id;
+        Alert.alert("Success", `Login successful! User ID: ${userId}`);
+        console.log("User ID:", userId);
+
+        // Save user ID in context and navigate to the tabs layout
+        setUser(userResponse.data);
+        // router.push("/(tabs)");
+        router.push({pathname: '/(tabs)', params: {firebaseUID: firebaseUID}});
       }
     } catch (error) {
+      // Handle errors
       console.error("Error logging in:", error);
       Alert.alert("Error", "Invalid email or password.");
     }
   };
+
+  // Render the login form
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
 
+      {/* Email Input */}
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -59,6 +81,7 @@ export default function HomeScreen() {
         autoCapitalize="none"
       />
 
+      {/* Password Input */}
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -68,16 +91,20 @@ export default function HomeScreen() {
         secureTextEntry
       />
 
+      {/* Login Button */}
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Log In</Text>
       </TouchableOpacity>
-      <Text style={{ marginTop: 20 }}>
+
+      {/* Sign-up Link */}
+      <Text style={styles.linkText}>
         <Link href="/signup">Don't have an account? Sign up</Link>
       </Text>
     </View>
   );
 }
 
+// Styles for the component
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -111,5 +138,10 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  linkText: {
+    marginTop: 20,
+    color: "#3b5998",
+    fontSize: 14,
   },
 });

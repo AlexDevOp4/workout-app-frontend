@@ -9,6 +9,8 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
+
+
 export default function ClientDashboardScreen() {
   const { firebaseUID } = useLocalSearchParams();
   const [user, setUser] = useState<any>([]);

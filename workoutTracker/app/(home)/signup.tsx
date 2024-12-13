@@ -10,13 +10,22 @@ import {
   Alert,
 } from "react-native";
 
+import { useUserContext } from "../UserContext";
+
 export default function SignUpScreen() {
+  const { user } = useUserContext();
   const router = useRouter();
+  const [first_name, setFirstName] = useState<string>("");
+  const [last_name, setLastName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
 
+  // Sign up logic
+  // Sign up should sign up user creds to firebase and add them to mongodb users collection at the same time
+
   const handleSignUp = async () => {
+    const BASE_URL = "http://localhost:3000";
     if (!email || !password || !confirmPassword) {
       alert("Please fill in all fields.");
       return;
@@ -28,15 +37,39 @@ export default function SignUpScreen() {
     }
 
     try {
-      const response = await axios.post("http://localhost:3000/auth/signup", {
-        email,
-        password,
-      });
+      // Adds user to firebase
+      interface SignUpResponse {
+        uid: string;
+      }
+
+      const response = await axios.post<SignUpResponse>(
+        "http://localhost:3000/auth/signup",
+        {
+          email,
+          password,
+        }
+      );
+
+      const firebaseUID = response.data[0]?.uid;
+      const trainerId = 825800;
+      const role = "client";
+
+      const createUserResponse = await axios.post<SignUpResponse>(
+        "http://localhost:3000/users",
+        {
+          first_name: first_name,
+          last_name: last_name,
+          role: role,
+          firebaseUID: firebaseUID,
+          trainerId: trainerId,
+          email: email,
+        }
+      );
 
       // Assuming the API returns a message or token on successful login
-      if (response.status === 201) {
+      if (response.status === 201 && createUserResponse.status === 201) {
         Alert.alert("Success", "Sign up successful! ");
-        router.push("/(tabs)");
+        router.push({ pathname: "/(tabs)", params: { firebaseUID } });
       }
     } catch (error) {
       console.error("Error logging in:", error);
@@ -46,7 +79,27 @@ export default function SignUpScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sign Up</Text>
+      <Text style={styles.title}>Sign Up{user?.first_name}</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="First Name"
+        placeholderTextColor="#aaa"
+        value={first_name}
+        onChangeText={setFirstName}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Last Name"
+        placeholderTextColor="#aaa"
+        value={last_name}
+        onChangeText={setLastName}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
 
       <TextInput
         style={styles.input}

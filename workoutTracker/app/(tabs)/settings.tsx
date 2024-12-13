@@ -1,11 +1,19 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Button,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons"; // For icons
 import axios from "axios";
-
+import { useUserContext } from "../UserContext";
 export default function Settings() {
   const router = useRouter();
+  const { userId } = useUserContext();
 
   const handleProfile = () => {
     Alert.alert("Profile", "Profile button pressed");
