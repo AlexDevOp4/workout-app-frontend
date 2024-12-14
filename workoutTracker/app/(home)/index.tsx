@@ -56,7 +56,7 @@ export default function HomeScreen() {
         // Save user ID in context and navigate to the tabs layout
         setUser(userResponse.data);
         // router.push("/(tabs)");
-        router.push({pathname: '/(tabs)', params: {firebaseUID: firebaseUID}});
+        router.push({pathname: '/(tabs)/workouts/', params: {firebaseUID: firebaseUID}});
       }
     } catch (error) {
       // Handle errors

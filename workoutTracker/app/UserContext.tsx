@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 
 // Define the shape of the user data
 interface User {
+  _id: string;
   user_id: number;
   firebaseUID: string;
   first_name: string;
