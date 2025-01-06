@@ -34,3 +34,6 @@ export const useUserContext = (): UserContextType => {
   }
   return context;
 };
+
+// Add a default export
+export default UserProvider;

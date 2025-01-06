@@ -2,186 +2,225 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
   FlatList,
   Alert,
-  TouchableOpacity,
 } from "react-native";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useUserContext } from "../../UserContext";
 
 export default function DayPage() {
-  const parseDayAndWeek = (dayString: string): [number, number] => {
-    const [day, week] = dayString.split(" ")[1].split("-").map(Number);
-    return [day, week];
-  };
-
   const { user } = useUserContext();
   const { day } = useLocalSearchParams();
   const router = useRouter();
 
-  const [userProgram, setUserProgram] = useState<any[]>([]);
-  const [actualReps, setActualReps] = useState<{ [key: string]: string }>({});
-  const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
-  const [currentDay, currentWeek] = parseDayAndWeek(day as string);
+  const [userProgram, setUserProgram] = useState([]);
+  const [actualReps, setActualReps] = useState({});
+  const [errors, setErrors] = useState({});
+  const [programDataId, setProgramDataId] = useState([]);
+  const [programDayLength, setProgramDayLength] = useState(0);
+  const [programWeekLength, setProgramWeekLength] = useState(0);
 
-  useEffect(() => {
-    fetchUserProgram(currentDay, currentWeek);
-  }, [currentDay, currentWeek]);
+  const parseDayAndWeek = (dayString) => {
+    const [day, week] = dayString.split("-").map(Number);
+    return [day, week];
+  };
 
-  const fetchUserProgram = async (day: number, week: number) => {
+  const [currentDay, currentWeek] = parseDayAndWeek(day);
+
+  const fetchUserProgram = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:3000/workoutlogs/${user?._id}`
+        `http://localhost:3000/workouts/uncompleted/${user._id}`
       );
-      const filteredProgram = filterProgramData(response.data as any[], day, week);
-      console.log(filteredProgram)
+      const currentUncompletedProgram = response.data[0];
+
+      setProgramDataId(currentUncompletedProgram["_id"]);
+      const filteredProgram = filterProgramData(
+        currentUncompletedProgram,
+        currentDay,
+        currentWeek
+      );
       setUserProgram(filteredProgram);
+
+      const programWeekLength =
+        currentUncompletedProgram.weeks[
+          currentUncompletedProgram.weeks.length - 1
+        ].weekNumber;
+      setProgramWeekLength(programWeekLength);
+
+      let weekArray =
+        currentUncompletedProgram.weeks[
+          currentUncompletedProgram.weeks.length - 1
+        ];
+
+      const programDayLength =
+        weekArray.days[weekArray.days.length - 1].dayNumber;
+      setProgramDayLength(programDayLength);
     } catch (error) {
       console.error("Error fetching user program:", error);
       Alert.alert("Error", "Failed to load the program.");
     }
   };
 
-  const filterProgramData = (data: any[], day: number, week: number) => {
-    return data
-      .flatMap((program) =>
-        program.weeks
-          .filter((w: any) => w.weekNumber === week)
-          .flatMap((w: any) => w.days.filter((d: any) => d.dayNumber === day))
-      )
-      .flatMap((day: any) => day.exercises);
+  useEffect(() => {
+    fetchUserProgram();
+  }, []);
+
+  const filterProgramData = (data, day, week) => {
+    const weekData = data?.weeks.find((w) => w.weekNumber === week);
+    if (!weekData) return [];
+    const dayData = weekData.days.find((d) => d.dayNumber === day);
+    return dayData?.exercises || [];
   };
 
-  const handleRepsChange = (id: string, value: string) => {
-    console.log(id, value)
+  const handleRepsChange = (id, value) => {
     const isValid = /^(\d+\s*,\s*)*\d+$/.test(value.trim());
     setActualReps((prev) => ({ ...prev, [id]: value }));
     setErrors((prev) => ({ ...prev, [id]: !isValid }));
   };
 
-  const handleSubmit = () => {
-    console.log(actualReps)
-    if (Object.values(errors).some((error) => error)) {
-      Alert.alert("Error", "Please fix the errors before submitting.");
-      return;
+  const handleClick = async (id, value) => {
+    const repsArray = value.split(",").map(Number);
+    try {
+      await axios.put(
+        `http://localhost:3000/workouts/${programDataId}/weeks/${currentWeek}/days/${currentDay}/exercises/${id}`,
+        { actualReps: repsArray }
+      );
+      Alert.alert("Success", "Actual reps updated successfully!");
+    } catch (error) {
+      console.error("Error updating workout:", error.response);
+      Alert.alert("Error", "Failed to update actual reps. Please try again.");
     }
-    Alert.alert("Success", "Data submitted successfully!");
   };
 
-  const renderExerciseRow = ({ item }: { item: any }) => (
-    <View style={styles.tableRow}>
-      <Text style={styles.cell}>{item.name}</Text>
-      <Text style={styles.cell}>{item.sets}</Text>
-      <Text style={styles.cell}>{item.weight}</Text>
-      <Text style={styles.cell}>{item.targetReps}</Text>
-      <Text style={styles.cell}>{item.rest}</Text>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={[styles.cell, styles.input, errors[item._id] && styles.error]}
-          value={actualReps[item._id] || ""}
-          placeholder="e.g., 10,10,10,10"
-          onChangeText={(value) => handleRepsChange(item._id, value)}
-        />
-        {errors[item.id] && (
-          <Text style={styles.errorText}>Invalid format</Text>
-        )}
-      </View>
-    </View>
-  );
-
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backButtonText}>← Back to Workouts</Text>
       </TouchableOpacity>
       <Text style={styles.title}>
-        W{currentWeek}/D{currentDay}: Exercises
+        Day {currentDay} / Week {currentWeek}
       </Text>
-      <View style={styles.tableRow}>
-        <Text style={[styles.cell, styles.header]}>Exercise</Text>
-        <Text style={[styles.cell, styles.header]}>Sets</Text>
-        <Text style={[styles.cell, styles.header]}>Weight</Text>
-        <Text style={[styles.cell, styles.header]}>Reps</Text>
-        <Text style={[styles.cell, styles.header]}>Rest</Text>
-        <Text style={[styles.cell, styles.header]}>Actual Reps</Text>
+
+      <View style={styles.card}>
+        {userProgram.map((exercise, index) => (
+          <View key={index} style={styles.exerciseCard}>
+            <Text style={styles.exerciseName}>{exercise.name}</Text>
+            <View style={styles.details}>
+              <Text style={styles.detailItem}>Sets: {exercise.sets}</Text>
+              <Text style={styles.detailItem}>
+                Weight: {exercise.weight} lbs
+              </Text>
+              <Text style={styles.detailItem}>Reps: {exercise.targetReps}</Text>
+            </View>
+            <View style={styles.inputRow}>
+              <TextInput
+                style={[
+                  styles.input,
+                  errors[exercise._id] && styles.inputError,
+                ]}
+                placeholder="Actual Reps"
+                keyboardType="numeric"
+                value={actualReps[exercise._id] || ""}
+                onChangeText={(value) => handleRepsChange(exercise._id, value)}
+              />
+              <TouchableOpacity
+                style={styles.logButton}
+                onPress={() =>
+                  handleClick(exercise._id, actualReps[exercise._id])
+                }
+              >
+                <Text style={styles.logButtonText}>Log</Text>
+              </TouchableOpacity>
+            </View>
+            {errors[exercise._id] && (
+              <Text style={styles.errorText}>Invalid reps format</Text>
+            )}
+          </View>
+        ))}
       </View>
-      <FlatList
-        data={userProgram}
-        keyExtractor={(item) => item._id}
-        renderItem={renderExerciseRow}
-      />
-      <View style={styles.submitButtonContainer}>
-        <TouchableOpacity onPress={handleSubmit}>
-          <Text style={styles.submitButton}>Submit</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#1a1a1a",
+    padding: 16,
   },
   backButton: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   backButtonText: {
-    color: "#3b5998",
+    color: "#4CAF50",
     fontSize: 16,
   },
   title: {
+    color: "#fff",
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  tableRow: {
-    flexDirection: "row",
-    marginBottom: 10,
+  card: {
+    backgroundColor: "#2a2a2a",
+    borderRadius: 8,
+    padding: 16,
   },
-  cell: {
-    flex: 1,
-    textAlign: "center",
-    padding: 5,
-    borderWidth: 1,
-    borderColor: "#ccc",
+  exerciseCard: {
+    backgroundColor: "#333",
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
   },
-  header: {
+  exerciseName: {
+    color: "#fff",
+    fontSize: 20,
     fontWeight: "bold",
-    backgroundColor: "#ddd",
+    marginBottom: 8,
+  },
+  details: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  detailItem: {
+    color: "#ccc",
+    fontSize: 14,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   input: {
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 5,
-  },
-  error: {
-    borderColor: "red",
-  },
-  inputContainer: {
     flex: 1,
+    backgroundColor: "#444",
+    color: "#fff",
+    borderRadius: 4,
+    padding: 8,
+    marginRight: 8,
+  },
+  inputError: {
+    borderColor: "red",
+    borderWidth: 1,
+  },
+  logButton: {
+    backgroundColor: "#4CAF50",
+    padding: 10,
+    borderRadius: 4,
+  },
+  logButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
   errorText: {
     color: "red",
     fontSize: 12,
-    textAlign: "center",
-  },
-  submitButtonContainer: {
-    marginTop: 20,
-    alignItems: "center",
-  },
-  submitButton: {
-    backgroundColor: "#3b5998",
-    color: "#fff",
-    padding: 15,
-    borderRadius: 8,
-    fontSize: 16,
-    fontWeight: "bold",
+    marginTop: 4,
   },
 });

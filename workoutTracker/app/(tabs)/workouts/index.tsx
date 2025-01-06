@@ -14,81 +14,71 @@ import { useUserContext } from "../../UserContext";
 
 export default function Workouts() {
   const { user } = useUserContext();
-  const [selectedWeek, setSelectedWeek] = useState("1"); // Default to Week 1
-  const [userProgram, setUsersProgram] = useState<any[]>([]);
-  const [week, setWeek] = useState<any[]>([]);
-  const [day, setDay] = useState<any[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState();
+  const [weeks, setWeeks] = useState([]);
+  const [days, setDays] = useState([]);
+  const [usersData, setUsersData] = useState("");
+  const [viewData, setViewData] = useState(true);
   const router = useRouter();
-  console.log(user?._id);
 
   useEffect(() => {
-    // Side effect logic here, such as fetching data
-    const getUser = async () => {
+    const fetchUserProgram = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3000/workoutlogs/${user?._id}`
+          `http://localhost:3000/workouts/uncompleted/${user._id}`
         );
+        setViewData(true);
 
-        console.log(response.data.workoutId[0]["weeks"][0]["weekNumber"]);
+        const responseData = response.data;
+        setSelectedWeek(String(responseData[0]["currentWeek"]));
+        setUsersData(responseData[0]["programName"]);
 
-        let usersProgramArray = [];
-        usersProgramArray.push(response.data);
+        const weeksData = responseData[0]?.weeks || [];
+        setWeeks(weeksData);
 
-        const normalizeData = (data) => (Array.isArray(data) ? data : [data]);
-
-        normalizeData(response.data);
-
-        setUsersProgram(normalizeData(response.data.workoutId[0]));
-        let weeks = [];
-        for (
-          let i = 0;
-          i < response.data.workoutId[0]["weeks"][0]["weekNumber"];
-          i++
-        ) {
-          weeks.push(`Week ${i + 1}`);
-        }
-
-        setWeek(weeks);
-
-        let days = [];
-
-        for (
-          let i = 0;
-          i < response.data.workoutId[0]["weeks"][0].days.length;
-          i++
-        ) {
-          days.push(`Day ${i + 1}`);
-        }
-
-        setDay(days);
+        const initialWeek = weeksData.find(
+          (week) => String(week.weekNumber) === responseData[0]["currentWeek"]
+        );
+        setDays(initialWeek?.days || []);
       } catch (error) {
-        console.error("Error fetching user:", error);
-        Alert.alert("Error", "Error fetching user.");
+        setViewData(false);
       }
     };
-    getUser();
 
-    // Optional cleanup function
-    return () => {
-      console.log("Cleanup logic, if needed.");
-    };
-  }, []); // Dependency array
+    if (user?._id) {
+      fetchUserProgram();
+    }
+  }, [user?._id]);
 
-  const days = ["Day 1", "Day 2", "Day 3", "Day 4"];
+  useEffect(() => {
+    const selectedWeekData = weeks.find(
+      (week) => String(week.weekNumber) === selectedWeek
+    );
+    setDays(selectedWeekData?.days || []);
+  }, [selectedWeek, weeks]);
 
-  return (
+  return viewData ? (
     <View style={styles.container}>
-      {/* Week Dropdown */}
-      <Text style={styles.title}>Select a Week</Text>
+      {/* Program Name */}
+      <Text style={styles.title}>{usersData}</Text>
+
+      {/* Week Selector */}
+      <Text style={styles.subtitle}>Select a Week</Text>
       <View style={styles.dropdown}>
         <Picker
           selectedValue={selectedWeek}
           onValueChange={(itemValue) => setSelectedWeek(itemValue)}
+          dropdownIconColor="#fff"
+          style={styles.picker}
         >
-          <Picker.Item label="Week 1" value="1" />
-          <Picker.Item label="Week 2" value="2" />
-          <Picker.Item label="Week 3" value="3" />
-          <Picker.Item label="Week 4" value="4" />
+          {weeks.map((weekItem, index) => (
+            <Picker.Item
+              color="#fff"
+              key={index}
+              label={`Week ${weekItem.weekNumber}`}
+              value={String(weekItem.weekNumber)}
+            />
+          ))}
         </Picker>
       </View>
 
@@ -96,18 +86,22 @@ export default function Workouts() {
       <Text style={styles.subtitle}>Days for Week {selectedWeek}</Text>
       <FlatList
         data={days}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={(item, index) => `${selectedWeek}-${index}`}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.dayButton}
             onPress={() =>
-              router.push(`/workouts/${item}-${selectedWeek}`)
+              router.push(`/workouts/${item.dayNumber}-${selectedWeek}`)
             }
           >
-            <Text style={styles.dayButtonText}>{item}</Text>
+            <Text style={styles.dayButtonText}>Day {item.dayNumber}</Text>
           </TouchableOpacity>
         )}
       />
+    </View>
+  ) : (
+    <View style={styles.unassigned}>
+      <Text style={styles.noWorkoutText}>No Workout Assigned!</Text>
     </View>
   );
 }
@@ -115,35 +109,54 @@ export default function Workouts() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#1a1a1a",
     padding: 20,
-    backgroundColor: "#f5f5f5",
   },
   title: {
+    color: "#fff",
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: 16,
+    textAlign: "center",
   },
   subtitle: {
+    color: "#aaa",
     fontSize: 18,
-    fontWeight: "bold",
-    marginVertical: 10,
+    fontWeight: "600",
+    marginBottom: 10,
   },
   dropdown: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#444",
     borderRadius: 8,
-    backgroundColor: "#fff",
+    backgroundColor: "#333",
     marginBottom: 20,
+    color: "#fff",
+  },
+  picker: {
+    color: "#fff",
   },
   dayButton: {
     padding: 15,
-    backgroundColor: "#3b5998",
+    backgroundColor: "#6366F1",
     borderRadius: 8,
     marginBottom: 10,
+    alignItems: "center",
   },
   dayButtonText: {
     color: "#fff",
     fontSize: 16,
-    textAlign: "center",
+    fontWeight: "600",
+  },
+  unassigned: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#1a1a1a",
+  },
+  noWorkoutText: {
+    color: "#aaa",
+    fontSize: 20,
+    fontWeight: "bold",
   },
 });
