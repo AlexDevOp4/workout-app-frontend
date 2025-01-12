@@ -2,12 +2,11 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TextInput,
   TouchableOpacity,
-  FlatList,
   Alert,
+  StyleSheet,
 } from "react-native";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -35,7 +34,7 @@ export default function DayPage() {
   const fetchUserProgram = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:3000/workouts/uncompleted/${user._id}`
+        `${process.env.EXPO_PUBLIC_DATABASE_URL}/workouts/uncompleted/${user._id}`
       );
       const currentUncompletedProgram = response.data[0];
 
@@ -53,11 +52,10 @@ export default function DayPage() {
         ].weekNumber;
       setProgramWeekLength(programWeekLength);
 
-      let weekArray =
+      const weekArray =
         currentUncompletedProgram.weeks[
           currentUncompletedProgram.weeks.length - 1
         ];
-
       const programDayLength =
         weekArray.days[weekArray.days.length - 1].dayNumber;
       setProgramDayLength(programDayLength);
@@ -88,7 +86,7 @@ export default function DayPage() {
     const repsArray = value.split(",").map(Number);
     try {
       await axios.put(
-        `http://localhost:3000/workouts/${programDataId}/weeks/${currentWeek}/days/${currentDay}/exercises/${id}`,
+        `${process.env.EXPO_PUBLIC_DATABASE_URL}/workouts/${programDataId}/weeks/${currentWeek}/days/${currentDay}/exercises/${id}`,
         { actualReps: repsArray }
       );
       Alert.alert("Success", "Actual reps updated successfully!");
@@ -100,13 +98,17 @@ export default function DayPage() {
 
   return (
     <ScrollView style={styles.container}>
+      {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backButtonText}>← Back to Workouts</Text>
       </TouchableOpacity>
+
+      {/* Page Title */}
       <Text style={styles.title}>
         Day {currentDay} / Week {currentWeek}
       </Text>
 
+      {/* Exercises */}
       <View style={styles.card}>
         {userProgram.map((exercise, index) => (
           <View key={index} style={styles.exerciseCard}>
@@ -125,6 +127,7 @@ export default function DayPage() {
                   errors[exercise._id] && styles.inputError,
                 ]}
                 placeholder="Actual Reps"
+                placeholderTextColor="#9CA3AF"
                 keyboardType="numeric"
                 value={actualReps[exercise._id] || ""}
                 onChangeText={(value) => handleRepsChange(exercise._id, value)}
@@ -151,35 +154,41 @@ export default function DayPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
-    padding: 16,
+    backgroundColor: "#0f172a", // Slate-900
+    padding: 20,
   },
   backButton: {
     marginBottom: 16,
   },
   backButtonText: {
-    color: "#4CAF50",
+    color: "#38bdf8", // Sky-400
     fontSize: 16,
+    fontWeight: "500",
   },
   title: {
-    color: "#fff",
+    color: "#f8fafc", // Slate-50
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16,
+    textAlign: "center",
   },
   card: {
-    backgroundColor: "#2a2a2a",
+    backgroundColor: "#1e293b", // Slate-800
     borderRadius: 8,
     padding: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   exerciseCard: {
-    backgroundColor: "#333",
+    backgroundColor: "#334155", // Slate-700
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
   },
   exerciseName: {
-    color: "#fff",
+    color: "#f8fafc", // Slate-50
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 8,
@@ -190,7 +199,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   detailItem: {
-    color: "#ccc",
+    color: "#94a3b8", // Slate-400
     fontSize: 14,
   },
   inputRow: {
@@ -199,27 +208,27 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: "#444",
-    color: "#fff",
+    backgroundColor: "#1e293b", // Slate-800
+    color: "#f8fafc", // Slate-50
     borderRadius: 4,
-    padding: 8,
+    padding: 10,
     marginRight: 8,
   },
   inputError: {
-    borderColor: "red",
+    borderColor: "#ef4444", // Red-500
     borderWidth: 1,
   },
   logButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#10b981", // Emerald-500
     padding: 10,
     borderRadius: 4,
   },
   logButtonText: {
-    color: "#fff",
+    color: "#f8fafc", // Slate-50
     fontWeight: "bold",
   },
   errorText: {
-    color: "red",
+    color: "#ef4444", // Red-500
     fontSize: 12,
     marginTop: 4,
   },

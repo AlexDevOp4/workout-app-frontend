@@ -4,68 +4,57 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  StyleSheet,
 } from "react-native";
-import StyledButton from "../components/StylesButton";
 
 export default function ClientDashboardScreen() {
   const router = useRouter();
   const { firebaseUID } = useLocalSearchParams();
 
-  // State variables
-  const [user, setUser] = useState(null); // Ensure null default value
-  const [usersCurrentProgram, setUsersCurrentProgram] = useState(null); // null ensures no accidental property access
+  const [user, setUser] = useState(null);
+  const [usersCurrentProgram, setUsersCurrentProgram] = useState(null);
   const [loading, setLoading] = useState(false);
   const [completedPrograms, setCompletedPrograms] = useState([]);
   const [userProgramData, setUserProgramData] = useState([]);
   const [completedWorkouts, setCompletedWorkouts] = useState([]);
 
   const countCompletedDays = (programs) => {
-    let completedDaysCount = 0;
-
-    programs.forEach((program) => {
-      program.weeks.forEach((week) => {
-        week.days.forEach((day) => {
-          const allExercisesCompleted = day.exercises.every(
-            (exercise) => exercise.actualReps && exercise.actualReps.length > 0
+    return programs.reduce((total, program) => {
+      return (
+        total +
+        program.weeks.reduce((weekTotal, week) => {
+          return (
+            weekTotal +
+            week.days.filter((day) =>
+              day.exercises.every(
+                (exercise) =>
+                  exercise.actualReps && exercise.actualReps.length > 0
+              )
+            ).length
           );
-          if (allExercisesCompleted) {
-            completedDaysCount += 1;
-          }
-        });
-      });
-    });
-
-    return completedDaysCount;
+        }, 0)
+      );
+    }, 0);
   };
 
-  // Fetch user data and program
   const getUser = async () => {
     setLoading(true);
     try {
-      // Replace with your API base URL or environment variable
-      const API_BASE_URL =
-        process.env.REACT_NATIVE_APP_API_URL || "http://localhost:3000";
+      const API_BASE_URL = process.env.EXPO_PUBLIC_DATABASE_URL;
 
-      // Fetch user data
       const userResponse = await axios.get(
         `${API_BASE_URL}/users/firebase?firebaseUID=${firebaseUID}`
       );
       const usersId = userResponse.data._id;
 
-      // Fetch programs in parallel
       const [currentProgramResponse, userPrograms] = await Promise.all([
         axios.get(`${API_BASE_URL}/workouts/uncompleted/${usersId}`),
         axios.get(`${API_BASE_URL}/workouts?clientId=${usersId}`),
       ]);
-
-      console.log(userPrograms.data, "currentProgramResponse");
-
-      console.log(countCompletedDays(userPrograms.data));
 
       setUserProgramData(userPrograms.data);
 
@@ -73,22 +62,17 @@ export default function ClientDashboardScreen() {
         (program) => program.completed === true
       );
 
-      const completedWorkouts = userPrograms.data
-        .filter((program) => program.completed) // Only programs where completed === true
-        .map((program) => ({
-          programName: program.programName,
-          date: new Date(program.updatedAt).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          }), // Format updatedAt to a readable date// Use updatedAt as the completion date
-        }));
+      const completedWorkouts = completedPrograms.map((program) => ({
+        programName: program.programName,
+        date: new Date(program.updatedAt).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+      }));
 
-      console.log(completedPrograms.length, "completedPrograms");
       setCompletedWorkouts(completedWorkouts);
       setCompletedPrograms(completedPrograms);
-
-      // Set state
       setUser(userResponse.data);
       setUsersCurrentProgram(currentProgramResponse.data);
     } catch (error) {
@@ -99,27 +83,23 @@ export default function ClientDashboardScreen() {
     }
   };
 
-  // Load data on component mount
   useEffect(() => {
     getUser();
   }, []);
 
-  // Handle workout navigation
   const handleStartWorkout = () => {
     router.push("/(tabs)/workouts/");
   };
 
-  // Render loading state
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color="#6366F1" />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
 
-  // Render the component
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -131,22 +111,25 @@ export default function ClientDashboardScreen() {
 
       {/* Current Program */}
       {usersCurrentProgram ? (
-        <View style={styles.programCard}>
-          <Text style={styles.programTitle}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>
             {usersCurrentProgram[0].programName || "No Program Available"}
           </Text>
-          <Text style={styles.progress}>
+          <Text style={styles.cardSubtitle}>
             Week {usersCurrentProgram[0].currentWeek || "N/A"} of{" "}
             {usersCurrentProgram[0].weeks?.length || "N/A"} | Day{" "}
             {usersCurrentProgram[0].currentDay || "N/A"}
           </Text>
-          <TouchableOpacity style={styles.button} onPress={handleStartWorkout}>
-            <Text style={styles.buttonText}>Start Today’s Workout</Text>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleStartWorkout}
+          >
+            <Text style={styles.primaryButtonText}>Start Today’s Workout</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={styles.programCard}>
-          <Text style={styles.programTitle}>No Program Found</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>No Program Found</Text>
         </View>
       )}
 
@@ -154,7 +137,7 @@ export default function ClientDashboardScreen() {
       <View style={styles.statsContainer}>
         <View style={styles.statBox}>
           <Text style={styles.statValue}>
-            {completedPrograms.length || "N/A"}{" "}
+            {completedPrograms.length || "N/A"}
           </Text>
           <Text style={styles.statLabel}>Programs Completed</Text>
         </View>
@@ -167,7 +150,7 @@ export default function ClientDashboardScreen() {
       </View>
 
       {/* Workout History */}
-      <View style={styles.historySection}>
+      <View>
         <Text style={styles.sectionTitle}>Workout History</Text>
         {completedWorkouts.length > 0 ? (
           completedWorkouts.map((program, index) => (
@@ -189,62 +172,46 @@ export default function ClientDashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#0f172a", // Slate-900
     padding: 20,
   },
-  noHistoryText: {
-    color: "#ccc",
-    fontSize: 14,
-    textAlign: "center",
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#0f172a",
+  },
+  loadingText: {
+    color: "#94a3b8", // Slate-400
     marginTop: 10,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 20,
   },
   greeting: {
-    color: "#fff",
+    color: "#f8fafc", // Slate-50
     fontSize: 24,
     fontWeight: "bold",
   },
-  profileIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    overflow: "hidden",
-  },
-  profileImage: {
-    width: "100%",
-    height: "100%",
-  },
-  programCard: {
-    backgroundColor: "#2a2a2a",
+  card: {
+    backgroundColor: "#1e293b", // Slate-800
     padding: 20,
     borderRadius: 10,
     marginBottom: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  programTitle: {
-    color: "#fff",
+  cardTitle: {
+    color: "#f8fafc", // Slate-50
     fontSize: 18,
     fontWeight: "bold",
   },
-  progress: {
-    color: "#ccc",
+  cardSubtitle: {
+    color: "#94a3b8", // Slate-400
     fontSize: 14,
     marginVertical: 10,
-  },
-  startWorkoutButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
   },
   statsContainer: {
     flexDirection: "row",
@@ -252,7 +219,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statBox: {
-    backgroundColor: "#2a2a2a",
+    backgroundColor: "#1e293b", // Slate-800
     flex: 1,
     marginHorizontal: 5,
     padding: 15,
@@ -260,64 +227,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statValue: {
-    color: "#fff",
+    color: "#f8fafc", // Slate-50
     fontSize: 20,
     fontWeight: "bold",
   },
   statLabel: {
-    color: "#ccc",
+    color: "#94a3b8", // Slate-400
     fontSize: 12,
   },
-  historySection: {
-    marginBottom: 20,
-  },
   sectionTitle: {
-    color: "#fff",
+    color: "#f8fafc", // Slate-50
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 10,
   },
   historyCard: {
-    backgroundColor: "#2a2a2a",
+    backgroundColor: "#1e293b", // Slate-800
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
   },
   historyDate: {
-    color: "#ccc",
+    color: "#94a3b8", // Slate-400
     fontSize: 14,
   },
   historySummary: {
-    color: "#fff",
+    color: "#f8fafc", // Slate-50
     fontSize: 16,
   },
-  banner: {
-    backgroundColor: "#4CAF50",
-    padding: 20,
+  noHistoryText: {
+    color: "#94a3b8", // Slate-400
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 10,
+  },
+  primaryButton: {
+    backgroundColor: "#6366F1", // Indigo-500
+    paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 10,
   },
-  bannerText: {
-    color: "#fff",
+  primaryButtonText: {
+    color: "#f8fafc", // Slate-50
     fontSize: 16,
-    textAlign: "center",
-  },
-  button: {
-    flexShrink: 0, // Equivalent to "flex-none" in Tailwind
-    borderRadius: 8, // Rounded corners; 8px matches "rounded-md"
-    backgroundColor: "#6366F1", // Indigo-500
-    paddingHorizontal: 14, // px-3.5 (14px padding left and right)
-    paddingVertical: 10, // py-2.5 (10px padding top and bottom)
-    fontSize: 14, // text-sm
-    fontWeight: "600", // font-semibold
-    color: "#FFFFFF", // White text
-    shadowColor: "#000", // Shadow settings for React Native
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4, // Matches "shadow-sm"
-    elevation: 4, // Adds shadow for Android
-    textAlign: "center",
-    alignItems: "center",
+    fontWeight: "bold",
   },
 });

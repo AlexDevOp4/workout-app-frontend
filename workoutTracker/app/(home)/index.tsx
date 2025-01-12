@@ -11,137 +11,125 @@ import {
 } from "react-native";
 import { useUserContext } from "../UserContext";
 
-// Type definitions for API responses
-interface LoginResponse {
-  uid: string; // Assuming the response contains `uid` directly
-}
-
-interface UserResponse {
-  user_id: number; // Assuming the `user_id` is returned from the second API
-}
-
 export default function HomeScreen() {
   const router = useRouter();
   const { setUser } = useUserContext();
 
-  // State variables for user input
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
 
-  // Handle user login
   const handleLogin = async () => {
     try {
-      // Step 1: Authenticate user and get Firebase UID
-      const response = await axios.post<LoginResponse>(
-        "http://localhost:3000/auth/signin",
-        { email, password }
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_DATABASE_URL}/auth/signin`,
+        {
+          email,
+          password,
+        }
       );
 
-      const firebaseUID = response.data["uid"];
-      console.log("Firebase UID:", firebaseUID);
+      const firebaseUID = (response.data as { uid: string }).uid;
 
-      // Step 2: Fetch user data using Firebase UID
-      const userResponse = await axios.get<UserResponse>(
-        `http://localhost:3000/users/firebase?firebaseUID=${firebaseUID}`
+      const userResponse = await axios.get(
+        `${process.env.EXPO_PUBLIC_DATABASE_URL}/users/firebase?firebaseUID=${firebaseUID}`
       );
 
-      console.log("User Data:", userResponse.data);
-
-      // Step 3: Handle successful login
       if (response.status === 201 && userResponse.status === 201) {
-        const userId = userResponse.data.user_id;
-        Alert.alert("Success", `Login successful! User ID: ${userId}`);
-        console.log("User ID:", userId);
-
-        // Save user ID in context and navigate to the tabs layout
         setUser(userResponse.data);
-        // router.push("/(tabs)");
-        router.push({pathname: '/(tabs)/', params: {firebaseUID: firebaseUID}});
+        router.push({ pathname: "/(tabs)/", params: { firebaseUID } });
       }
     } catch (error) {
-      // Handle errors
       console.error("Error logging in:", error);
       Alert.alert("Error", "Invalid email or password.");
     }
   };
 
-  // Render the login form
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>Log In</Text>
 
-      {/* Email Input */}
       <TextInput
         style={styles.input}
         placeholder="Email"
-        placeholderTextColor="#aaa"
+        placeholderTextColor="#9CA3AF" // Tailwind Slate-400
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
       />
 
-      {/* Password Input */}
       <TextInput
         style={styles.input}
         placeholder="Password"
-        placeholderTextColor="#aaa"
+        placeholderTextColor="#9CA3AF" // Tailwind Slate-400
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
 
-      {/* Login Button */}
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Log In</Text>
       </TouchableOpacity>
 
-      {/* Sign-up Link */}
       <Text style={styles.linkText}>
-        <Link href="/signup">Don't have an account? Sign up</Link>
+        <Link href="/signup" style={styles.link}>
+          Don't have an account? Sign up
+        </Link>
       </Text>
     </View>
   );
 }
 
-// Styles for the component
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#0f172a", // Slate-900
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
+    color: "#f8fafc", // Slate-50
     marginBottom: 20,
+    textAlign: "center",
   },
   input: {
     width: "100%",
     padding: 15,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#1e293b", // Slate-800
     borderRadius: 8,
-    backgroundColor: "#fff",
+    backgroundColor: "#1e293b", // Slate-800
+    color: "#f8fafc", // Slate-50
   },
   button: {
-    backgroundColor: "#3b5998",
+    backgroundColor: "#4F46E5", // Indigo-600
     padding: 15,
     borderRadius: 8,
     width: "100%",
     alignItems: "center",
+    shadowColor: "#000", // Add subtle shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5, // Shadow for Android
   },
   buttonText: {
-    color: "#fff",
+    color: "#f8fafc", // Slate-50
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   linkText: {
     marginTop: 20,
-    color: "#3b5998",
     fontSize: 14,
+    color: "#9CA3AF", // Slate-400
+    textAlign: "center",
+  },
+  link: {
+    color: "#4F46E5", // Indigo-600
+    fontWeight: "500",
   },
 });

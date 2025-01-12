@@ -21,11 +21,13 @@ export default function Workouts() {
   const [viewData, setViewData] = useState(true);
   const router = useRouter();
 
+  // Fetch workout data for the user
   useEffect(() => {
     const fetchUserProgram = async () => {
+      
       try {
         const response = await axios.get(
-          `http://localhost:3000/workouts/uncompleted/${user._id}`
+          `${process.env.EXPO_PUBLIC_DATABASE_URL}/workouts/uncompleted/${user._id}`
         );
         setViewData(true);
 
@@ -50,6 +52,7 @@ export default function Workouts() {
     }
   }, [user?._id]);
 
+  // Update days when selectedWeek changes
   useEffect(() => {
     const selectedWeekData = weeks.find(
       (week) => String(week.weekNumber) === selectedWeek
@@ -68,12 +71,12 @@ export default function Workouts() {
         <Picker
           selectedValue={selectedWeek}
           onValueChange={(itemValue) => setSelectedWeek(itemValue)}
-          dropdownIconColor="#fff"
+          dropdownIconColor="#6366F1" // Tailwind Indigo
           style={styles.picker}
         >
           {weeks.map((weekItem, index) => (
             <Picker.Item
-              color="#fff"
+              color="#F1F5F9"
               key={index}
               label={`Week ${weekItem.weekNumber}`}
               value={String(weekItem.weekNumber)}
@@ -109,42 +112,42 @@ export default function Workouts() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#0f172a", // Tailwind Dark Blue-Gray
     padding: 20,
   },
   title: {
-    color: "#fff",
+    color: "#FFFFFF", // Tailwind Green Accent
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16,
     textAlign: "center",
   },
   subtitle: {
-    color: "#aaa",
+    color: "#A3BFFA", // Tailwind Light Indigo
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 10,
   },
   dropdown: {
     borderWidth: 1,
-    borderColor: "#444",
+    borderColor: "#3B82F6", // Tailwind Blue
     borderRadius: 8,
-    backgroundColor: "#333",
+    backgroundColor: "#1F2937", // Tailwind Gray-900
     marginBottom: 20,
-    color: "#fff",
+    padding: 10,
   },
   picker: {
-    color: "#fff",
+    color: "#E5E7EB", // Tailwind Gray-200
   },
   dayButton: {
     padding: 15,
-    backgroundColor: "#6366F1",
+    backgroundColor: "#6366F1", // Tailwind Indigo
     borderRadius: 8,
     marginBottom: 10,
     alignItems: "center",
   },
   dayButtonText: {
-    color: "#fff",
+    color: "#FFFFFF", // White text for buttons
     fontSize: 16,
     fontWeight: "600",
   },
@@ -152,10 +155,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#111827", // Tailwind Gray-900
   },
   noWorkoutText: {
-    color: "#aaa",
+    color: "#9CA3AF", // Tailwind Gray-400
     fontSize: 20,
     fontWeight: "bold",
   },
