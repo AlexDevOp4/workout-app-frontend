@@ -7,10 +7,14 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  Button,
+  Image,
+  ActivityIndicator,
 } from "react-native";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useUserContext } from "../../UserContext";
+import * as ImagePicker from "expo-image-picker";
 
 export default function DayPage() {
   const { user } = useUserContext();
@@ -23,6 +27,8 @@ export default function DayPage() {
   const [programDataId, setProgramDataId] = useState([]);
   const [programDayLength, setProgramDayLength] = useState(0);
   const [programWeekLength, setProgramWeekLength] = useState(0);
+  const [image, setImage] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const parseDayAndWeek = (dayString) => {
     const [day, week] = dayString.split("-").map(Number);
@@ -30,6 +36,22 @@ export default function DayPage() {
   };
 
   const [currentDay, currentWeek] = parseDayAndWeek(day);
+
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
 
   const fetchUserProgram = async () => {
     try {
@@ -96,6 +118,61 @@ export default function DayPage() {
     }
   };
 
+  const pickVideo = async (exerciseId) => {
+    let permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert(
+        "Permission required",
+        "Please allow access to the media library."
+      );
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      uploadVideo(result.assets[0].uri, exerciseId);
+    }
+  };
+
+  const uploadVideo = async (videoUri, exerciseId) => {
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", {
+      uri: videoUri,
+      name: `exercise_${exerciseId}.mp4`,
+      type: "video/mp4",
+    });
+
+    try {
+      const response = await axios.post(
+        `http://localhost:3000/videos/uploadFile?userId=${user._id}&exerciseId=${exerciseId}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      Alert.alert("Upload Successful", "Your video has been uploaded.");
+      console.log("Video URL:", response.data.downloadURL);
+    } catch (error) {
+      console.error("Error uploading video:", error);
+      Alert.alert(
+        "Upload Failed",
+        "An error occurred while uploading the video."
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       {/* Back Button */}
@@ -113,6 +190,7 @@ export default function DayPage() {
         {userProgram.map((exercise, index) => (
           <View key={index} style={styles.exerciseCard}>
             <Text style={styles.exerciseName}>{exercise.name}</Text>
+            {image && <Image source={{ uri: image }} style={styles.image} />}
             <View style={styles.details}>
               <Text style={styles.detailItem}>Sets: {exercise.sets}</Text>
               <Text style={styles.detailItem}>
@@ -141,12 +219,20 @@ export default function DayPage() {
                 <Text style={styles.logButtonText}>Log</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity
+              style={styles.uploadButton}
+              onPress={() => pickVideo(exercise._id)}
+            >
+              <Text style={styles.uploadButtonText}>Upload Video</Text>
+            </TouchableOpacity>
             {errors[exercise._id] && (
               <Text style={styles.errorText}>Invalid reps format</Text>
             )}
           </View>
         ))}
       </View>
+
+      {uploading && <ActivityIndicator size="large" color="#10b981" />}
     </ScrollView>
   );
 }
@@ -231,5 +317,20 @@ const styles = StyleSheet.create({
     color: "#ef4444", // Red-500
     fontSize: 12,
     marginTop: 4,
+  },
+  image: {
+    width: 200,
+    height: 200,
+  },
+  uploadButton: {
+    backgroundColor: "#2563eb", // Blue-600
+    padding: 10,
+    borderRadius: 4,
+    marginTop: 10,
+  },
+  uploadButtonText: {
+    color: "#f8fafc",
+    fontWeight: "bold",
+    textAlign: "center",
   },
 });

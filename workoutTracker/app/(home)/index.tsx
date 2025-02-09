@@ -10,6 +10,8 @@ import {
   Alert,
 } from "react-native";
 import { useUserContext } from "../UserContext";
+import { LogBox } from "react-native";
+LogBox.ignoreAllLogs(false);
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -17,8 +19,12 @@ export default function HomeScreen() {
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<any>(null);
 
   const handleLogin = async () => {
+    setLoading(true); // Start loading
+    setError(null); // Clear previous errors
     try {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_DATABASE_URL}/auth/signin`,
@@ -28,25 +34,33 @@ export default function HomeScreen() {
         }
       );
 
-      const firebaseUID = (response.data as { uid: string }).uid;
+      const firebaseUID = response.data as { user: { firebaseUid: string } };
+      console.log(firebaseUID.user.firebaseUid);
 
       const userResponse = await axios.get(
-        `${process.env.EXPO_PUBLIC_DATABASE_URL}/users/firebase?firebaseUID=${firebaseUID}`
+        `${process.env.EXPO_PUBLIC_DATABASE_URL}/users/firebase?firebaseUID=${firebaseUID.user.firebaseUid}`
       );
 
-      if (response.status === 201 && userResponse.status === 201) {
-        setUser(userResponse.data);
-        router.push({ pathname: "/(tabs)/", params: { firebaseUID } });
-      }
+      const userData = userResponse.data;
+
+      setUser(userData);
+      router.push({
+        pathname: "/(tabs)",
+        params: { firebaseUID: firebaseUID.user.firebaseUid },
+      });
     } catch (error) {
       console.error("Error logging in:", error);
-      Alert.alert("Error", "Invalid email or password.");
+      setError("Invalid email or password"); // Show error
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Log In</Text>
+
+      {error && <Text style={styles.errorMessage}>{error}</Text>}
 
       <TextInput
         style={styles.input}
@@ -68,7 +82,10 @@ export default function HomeScreen() {
       />
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Log In</Text>
+        <Text style={styles.buttonText}>
+          {loading ? "Logging in..." : "Login"}
+        </Text>
+        {loading && <View style={styles.spinner}></View>}
       </TouchableOpacity>
 
       <Text style={styles.linkText}>
@@ -131,5 +148,19 @@ const styles = StyleSheet.create({
   link: {
     color: "#4F46E5", // Indigo-600
     fontWeight: "500",
+  },
+  spinner: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 4,
+    borderColor: "white",
+    borderTopColor: "gray",
+  },
+  errorMessage: {
+    color: "red",
+    marginBottom: 10,
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

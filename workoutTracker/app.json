@@ -13,6 +13,11 @@
       "icon": "./assets/images/app-thumbnail.png",
       "bundleIdentifier": "com.anonymous.workoutTracker"
     },
+    "infoPlist": {
+      "NSPhotoLibraryUsageDescription": "This app requires access to your photo library to allow video uploads.",
+      "NSPhotoLibraryAddUsageDescription": "This app needs permission to save videos to your photo library.",
+      "NSCameraUsageDescription": "This app needs access to your camera to record and upload videos."
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/app-thumbnail.png",
@@ -33,6 +38,17 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends.",
+          "cameraPermission": "The app accesses your camera to let you share photos and videos with your friends.",
+          "microphonePermission": "The app accesses your microphone to let you share videos with your friends.",
+          "mediaLibraryPermission": "The app accesses your media library to let you share photos and videos with your friends.",
+          "saveToLibrary": "The app saves photos and videos to your media library to let you share them with your friends.",
+          "allowsMultipleSelection": true
         }
       ]
     ],
